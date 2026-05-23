@@ -45,7 +45,7 @@ next-env.d.ts
 
 /.agents
 /.agent
-/docs
+
 .planning/
 
 .venv/
