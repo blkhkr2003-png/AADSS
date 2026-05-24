@@ -68,7 +68,9 @@ create table class_sessions (
   start_time time not null,
   end_time time not null,
   status text check (status in ('scheduled','cancelled','completed')) default 'scheduled',
-  created_at timestamp default now()
+  created_at timestamp default now(),
+  cancelled_by uuid references auth.users(id),
+  cancelled_at timestamp with time zone
 );
 
 -- ATTENDANCE
@@ -80,6 +82,8 @@ create table attendance (
   marked_at timestamp default now(),
   latitude double precision,
   longitude double precision,
+  overridden_by uuid references auth.users(id),
+  override_reason text,
   unique(student_id, class_session_id)
 );
 
@@ -96,3 +100,38 @@ create table notes (
 create index idx_attendance_student on attendance(student_id);
 create index idx_attendance_session on attendance(class_session_id);
 create index idx_class_sessions_date on class_sessions(date);
+
+-- RISK SCORES
+create table risk_scores (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid references student_profiles(id) on delete cascade,
+  subject_id uuid references subjects(id) on delete cascade,
+  risk_score int not null default 0,
+  risk_level text not null default 'safe',
+  classes_needed_to_recover int not null default 0,
+  computed_at timestamp with time zone default now()
+);
+
+-- DEVICE RESET REQUESTS
+create table device_reset_requests (
+  id uuid primary key default uuid_generate_v4(),
+  student_profile_id uuid not null references student_profiles(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  reason text not null,
+  status text not null check (status in ('pending', 'approved', 'rejected', 'completed')) default 'pending',
+  admin_notes text,
+  approved_by uuid references auth.users(id) on delete set null,
+  requested_at timestamp with time zone not null default now(),
+  reviewed_at timestamp with time zone,
+  activates_at timestamp with time zone,
+  completed_at timestamp with time zone
+);
+
+-- ACADEMIC HOLIDAYS
+create table academic_holidays (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid references academic_sessions(id) on delete cascade,
+  date date not null,
+  title text not null,
+  created_at timestamp with time zone default now()
+);
