@@ -101,6 +101,29 @@ Open [http://localhost:3000](http://localhost:3000) using your browser to see th
 
 ---
 
+### 🐳 Run with Docker (Recommended for Windows / Mac)
+
+If you are running the project on a different OS (like Windows or Mac) and encounter setup issues (Node.js version mismatch, system dependencies, or local environment differences), you can run the entire project in an isolated Linux container using Docker.
+
+#### 1. Prerequisites
+Make sure you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running on your system.
+
+#### 2. Configure Environment
+Ensure your `.env.local` file is set up correctly in the root folder (just like the standard configuration).
+
+#### 3. Run the App
+To build the image and start the application in one command:
+```bash
+docker compose up --build
+```
+
+#### 4. Access the Website
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+*Note for Windows users: Hot module reloading (HMR) is supported inside the container via file polling.*
+
+---
+
 ## 🛠️ Available Commands
 
 - `npm run dev` - Starts the development server with Hot Module Replacement.

@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: acadence-app
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      # Anonymous volumes to prevent container modules from being overwritten by the host
+      - /app/node_modules
+      - /app/.next
+    # Inject environment variables from .env.local into the container
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      # CRITICAL FOR WINDOWS: Enables polling so hot-reloading works flawlessly on Windows hosts
+      - WATCHPACK_POLLING=true
