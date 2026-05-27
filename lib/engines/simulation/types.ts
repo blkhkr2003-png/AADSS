@@ -52,3 +52,12 @@ export interface SimulationOutput {
   summary: SimulationSummary;
   subjects: SubjectSimulationResult[];
 }
+
+export interface RecoveryPlannerResult {
+  subjectId: string;
+  currentPct: number;
+  targetPct: number;
+  classesNeeded: number;
+  isPossible: boolean;
+  classesShortBy: number;
+}
