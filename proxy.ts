@@ -34,7 +34,7 @@ export async function proxy(req: NextRequest) {
   const isAdminRoute =
     pathname.startsWith("/admin") && pathname !== "/admin/login";
   const isAdminLogin = pathname === "/admin/login";
-  const publicRoutes = ["/", "/login", "/register", "/verify-email"];
+  const publicRoutes = ["/", "/login", "/register", "/verify-email", "/auth/callback"];
   const isPublicRoute = publicRoutes.includes(pathname);
 
   // ── Admin routes ──────────────────────────────────────────────

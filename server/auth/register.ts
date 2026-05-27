@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
 
 export async function register(email: string, password: string) {
   if (!email || !password) {
@@ -8,10 +9,14 @@ export async function register(email: string, password: string) {
   }
 
   const supabase = createClient();
+  const origin = (await headers()).get("origin");
 
   const { error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback`,
+    },
   });
 
   if (error) {
@@ -20,3 +25,4 @@ export async function register(email: string, password: string) {
 
   return { success: true };
 }
+
