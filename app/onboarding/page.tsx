@@ -17,7 +17,26 @@ export default function OnboardingPage() {
   const [fullName, setFullName] = useState("");
   const [academicContext, setAcademicContext] = useState<{program: string, sem: number} | null>(null);
 
+  // Self-onboarding states
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [programs, setPrograms] = useState<any[]>([]);
+  const [semesters, setSemesters] = useState<any[]>([]);
+
+  const [selectedSession, setSelectedSession] = useState("");
+  const [selectedProgram, setSelectedProgram] = useState("");
+  const [selectedSemester, setSelectedSemester] = useState("");
+
   const supabase = useMemo(() => createClient(), []);
+
+  const filteredPrograms = useMemo(() => {
+    if (!selectedSession) return [];
+    return programs.filter((p) => p.session_id === selectedSession);
+  }, [programs, selectedSession]);
+
+  const filteredSemesters = useMemo(() => {
+    if (!selectedProgram) return [];
+    return semesters.filter((s) => s.program_id === selectedProgram);
+  }, [semesters, selectedProgram]);
 
   // Fetch pre-provisioned data
   useEffect(() => {
@@ -42,6 +61,17 @@ export default function OnboardingPage() {
           program: (profile.programs as any)?.name || "Unknown Program",
           sem: (profile.semesters as any)?.semester_number || 0
         });
+      } else {
+        // Fetch active metadata so student can self-select
+        const [sessionsRes, programsRes, semestersRes] = await Promise.all([
+          supabase.from("academic_sessions").select("id, name").eq("status", "active"),
+          supabase.from("programs").select("id, name, session_id").eq("status", "active"),
+          supabase.from("semesters").select("id, semester_number, program_id").eq("status", "active")
+        ]);
+
+        if (sessionsRes.data) setSessions(sessionsRes.data);
+        if (programsRes.data) setPrograms(programsRes.data);
+        if (semestersRes.data) setSemesters(semestersRes.data);
       }
       
       if (user.user_metadata?.full_name) {
@@ -59,13 +89,28 @@ export default function OnboardingPage() {
       return;
     }
 
+    if (!academicContext) {
+      if (!selectedSession || !selectedProgram || !selectedSemester) {
+        toast.error("Please select your academic session, program, and semester");
+        return;
+      }
+    }
+
     setIsPending(true);
 
     try {
       // 1. Generate a robust Device Fingerprint using FingerprintJS
       const deviceFingerprint = await getDeviceFingerprint();
       
-      const res = await verifyStudentProfile(fullName, deviceFingerprint);
+      const academicDetails = !academicContext
+        ? {
+            sessionId: selectedSession,
+            programId: selectedProgram,
+            semesterId: selectedSemester,
+          }
+        : undefined;
+
+      const res = await verifyStudentProfile(fullName, deviceFingerprint, academicDetails);
 
       if (res?.error) {
         toast.error(res.error);
@@ -106,17 +151,83 @@ export default function OnboardingPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Admin Provisioned Read-Only Context */}
-          <div className="p-4 bg-muted/50 rounded-xl border space-y-3">
-             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Admin Provisioned Details</p>
-             <div className="flex items-center gap-3">
-                <GraduationCap className="w-5 h-5 text-primary" />
-                <div>
-                   <p className="font-semibold text-sm">{academicContext?.program || "Processing..."}</p>
-                   <p className="text-xs text-muted-foreground">Semester {academicContext?.sem || "Processing..."}</p>
+          {academicContext ? (
+            /* Admin Provisioned Read-Only Context */
+            <div className="p-4 bg-muted/50 rounded-xl border space-y-3">
+               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Admin Provisioned Details</p>
+               <div className="flex items-center gap-3">
+                  <GraduationCap className="w-5 h-5 text-primary" />
+                  <div>
+                     <p className="font-semibold text-sm">{academicContext.program}</p>
+                     <p className="text-xs text-muted-foreground">Semester {academicContext.sem}</p>
+                  </div>
+               </div>
+            </div>
+          ) : (
+            /* Self-Selection Dropdowns */
+            <div className="p-4 bg-muted/30 rounded-xl border border-dashed space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Academic Profile Setup</p>
+              
+              <div className="space-y-3">
+                {/* Academic Session */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Academic Session</label>
+                  <select
+                    value={selectedSession}
+                    onChange={(e) => {
+                      setSelectedSession(e.target.value);
+                      setSelectedProgram("");
+                      setSelectedSemester("");
+                    }}
+                    className="w-full px-3 py-2 border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
+                    required
+                  >
+                    <option value="">Select Session...</option>
+                    {sessions.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
                 </div>
-             </div>
-          </div>
+
+                {/* Program */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Program</label>
+                  <select
+                    value={selectedProgram}
+                    onChange={(e) => {
+                      setSelectedProgram(e.target.value);
+                      setSelectedSemester("");
+                    }}
+                    disabled={!selectedSession}
+                    className="w-full px-3 py-2 border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    required
+                  >
+                    <option value="">Select Program...</option>
+                    {filteredPrograms.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Semester */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Semester</label>
+                  <select
+                    value={selectedSemester}
+                    onChange={(e) => setSelectedSemester(e.target.value)}
+                    disabled={!selectedProgram}
+                    className="w-full px-3 py-2 border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    required
+                  >
+                    <option value="">Select Semester...</option>
+                    {filteredSemesters.map((s) => (
+                      <option key={s.id} value={s.id}>Semester {s.semester_number}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Your Full Legal Name</label>
