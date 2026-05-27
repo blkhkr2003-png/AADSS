@@ -61,3 +61,27 @@ export interface RecoveryPlannerResult {
   isPossible: boolean;
   classesShortBy: number;
 }
+
+export interface SkipPlannerResult {
+  subjectId: string;
+  currentPct: number;
+  afterSkipPct: number;
+  isSafe: boolean;
+  wouldDropBelow: boolean;
+}
+
+export interface WorstCaseResult {
+  subjectId: string;
+  currentPct: number;
+  maxSkipsAllowed: number;
+  alreadyBreach: boolean;
+}
+
+export interface StreakSimulatorResult {
+  subjectId: string;
+  currentPct: number;
+  projectedPct: number;
+  streakNeeded: number;
+  willReachTarget: boolean;
+}
+
